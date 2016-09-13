@@ -10,13 +10,14 @@ chmod 700 "$site/"
 echo "created $site/"
 
 if ! test -s "$site/key"; then
-  ipfs-key -bitsize=$keySize 2>/dev/null > "$site/key"
+  ipfs-key -bitsize=$keySize 2>"$site/key.log" > "$site/key"
   echo "created $site/key"
 else
   echo "skipped $site/key (exists)"
 fi
 
 if ! test -s "$site/ref"; then
+  echo "publishing initial hello-world page"
   ./publish.sh "$site" "$initRef"
 else
   echo "skipped initial publish"
