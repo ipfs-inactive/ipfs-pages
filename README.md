@@ -35,6 +35,14 @@ Later on this might also:
 > echo "@hourly pages cd && ./republish.sh >> republish.log"
 ```
 
+## Debugging
+
+Enable the `PAGES_TRACE` environment variable.
+
+```sh
+> ssh pages@pages.ipfs.team env PAGES_TRACE=1 ./create.sh examplesite
+```
+
 ## Maintainers
 
 Captain: [@lgierth](https://github.com/lgierth).
