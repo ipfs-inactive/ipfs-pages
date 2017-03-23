@@ -15,13 +15,15 @@ import (
 const pagesYml = ".ipfspages.yml"
 
 type PagesServer struct {
+	context       context.Context
 	webhookSecret []byte
 	github        *gh.Client
 	ymlBranch     string
 }
 
-func NewPagesServer(secret []byte, github *gh.Client) *PagesServer {
+func NewPagesServer(ctx context.Context, secret []byte, github *gh.Client) *PagesServer {
 	ps := &PagesServer{
+		context:       ctx,
 		webhookSecret: secret,
 		github:        github,
 		ymlBranch:     "master",
@@ -112,12 +114,50 @@ func (ps *PagesServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	switch event := event.(type) {
 	case *gh.PushEvent:
-		log.Printf("pushed %s to %s", event.HeadCommit.GetID(), event.Repo.GetFullName())
+		log.Printf("received push to %s", event.Repo.GetFullName())
+		err = ps.receivePushEvent(event)
+		if err != nil {
+			ps.errorResponse(w, r, err)
+		}
 	default:
-		log.Printf("ignoring %s", whtype)
 	}
 
 	w.WriteHeader(http.StatusAccepted)
+}
+
+func (ps *PagesServer) receivePushEvent(event *gh.PushEvent) error {
+	remove := false
+	add := false
+	for _, commit := range event.Commits {
+		for _, addee := range append(commit.Added, commit.Modified...) {
+			if addee == pagesYml {
+				add = true
+				remove = false
+			}
+		}
+		for _, addee := range commit.Removed {
+			if addee == pagesYml {
+				remove = true
+				add = false
+			}
+		}
+	}
+	if add || remove {
+		fullname := strings.Split(event.Repo.GetFullName(), "/")
+		repo, resp, err := ps.github.Repositories.Get(ps.context, fullname[0], fullname[1])
+		if resp.StatusCode == 404 {
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+
+		if add {
+			return ps.addTarget(repo, yml)
+		} else if remove {
+			return ps.removeTarget(repo, yml)
+		}
+	}
 }
 
 func (ps *PagesServer) errorResponse(w http.ResponseWriter, r *http.Request, err error) {
@@ -160,7 +200,7 @@ func main() {
 	oac := oauth2.NewClient(ctx, oat)
 	github := gh.NewClient(oac)
 
-	ps := NewPagesServer(webhookSecret, github)
+	ps := NewPagesServer(ctx, webhookSecret, github)
 
 	for _, org := range []string{"ipfs", "ipld", "orbitdb", "libp2p", "multiformats"} {
 		err = ps.RefreshTargets(ctx, org)
