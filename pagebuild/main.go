@@ -1,8 +1,8 @@
 package main
 
 import (
-	// "fmt"
 	"bytes"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
@@ -34,8 +34,8 @@ func main() {
 		log.Fatal("usage: pagebuild github.com/ORG/REPO COMMIT")
 	}
 
-	// owner := rparts[1]
-	// repo := rparts[2]
+	owner := rparts[1]
+	repo := rparts[2]
 	commit := os.Args[2]
 
 	cwd, err := os.Getwd()
@@ -43,30 +43,30 @@ func main() {
 		log.Fatal(err)
 	}
 
-	// repoDir := filepath.Join(cwd, reposDir, owner, repo)
-	// repoURL := fmt.Sprintf("git@github.com:%s/%s.git", owner, repo)
-	// buildDir := filepath.Join(cwd, buildsDir, commit)
+	repoDir := filepath.Join(cwd, reposDir, owner, repo)
+	repoURL := fmt.Sprintf("git@github.com:%s/%s.git", owner, repo)
+	buildDir := filepath.Join(cwd, buildsDir, commit)
 	treeDir := filepath.Join(cwd, buildsDir, commit, "tree")
 
-	// if err := cloneRepo(repoDir, repoURL); err != nil {
-	// 	log.Fatal(err)
-	// }
+	if err := cloneRepo(repoDir, repoURL); err != nil {
+		log.Fatal(err)
+	}
 
-	// if err := cloneBuild(buildDir, repoDir, repoURL, commit); err != nil {
-	// 	log.Fatal(err)
-	// }
+	if err := cloneBuild(buildDir, repoDir, repoURL, commit); err != nil {
+		log.Fatal(err)
+	}
 
-	// commitRelevant, err := exists(filepath.Join(treeDir, settingsFile))
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-	// if !commitRelevant {
-	// 	log.Printf("ignoring github.com/%s/%s %s", owner, repo, commit)
-	// 	if err := os.RemoveAll(buildDir); err != nil {
-	// 		log.Fatal(err)
-	// 	}
-	// 	os.Exit(0)
-	// }
+	commitRelevant, err := exists(filepath.Join(treeDir, settingsFile))
+	if err != nil {
+		log.Fatal(err)
+	}
+	if !commitRelevant {
+		log.Printf("ignoring github.com/%s/%s %s", owner, repo, commit)
+		if err := os.RemoveAll(buildDir); err != nil {
+			log.Fatal(err)
+		}
+		os.Exit(0)
+	}
 
 	settings, err := parseSettingsFile(filepath.Join(treeDir, settingsFile))
 	if err != nil {

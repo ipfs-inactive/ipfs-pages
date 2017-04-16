@@ -58,7 +58,7 @@ func (ps *PagesServer) refreshTarget(ctx context.Context, repo *gh.Repository) e
 
 	ref, resp, err := ps.github.Git.GetRef(ctx, owner, name, "heads/"+ps.ymlBranch)
 	if resp.StatusCode == 404 {
-		ps.removeTarget(repo)
+		ps.removeTarget(repo, nil)
 		return nil
 	}
 	if err != nil {
@@ -78,7 +78,7 @@ func (ps *PagesServer) refreshTarget(ctx context.Context, repo *gh.Repository) e
 		}
 	}
 	if ymlentry == nil {
-		ps.removeTarget(repo)
+		ps.removeTarget(repo, nil)
 		return nil
 	}
 
@@ -92,18 +92,18 @@ func (ps *PagesServer) refreshTarget(ctx context.Context, repo *gh.Repository) e
 	return nil
 }
 
-func (ps *PagesServer) addTarget(repo *gh.Repository, yml *gh.Blob) error {
+func (ps *PagesServer) addTarget(repo *gh.Repository, _ *gh.Blob) error {
 	log.Printf("addTarget: %s", repo.GetFullName())
 	return nil
 }
 
-func (ps *PagesServer) removeTarget(repo *gh.Repository) error {
+func (ps *PagesServer) removeTarget(repo *gh.Repository, _ *gh.Blob) error {
 	log.Printf("removeTarget: %s", repo.GetFullName())
 	return nil
 }
 
 func (ps *PagesServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	whtype, event, err := ps.parseWebhook(r)
+	_, event, err := ps.parseWebhook(r)
 	if err != nil {
 		ps.errorResponse(w, r, err)
 		return
@@ -153,11 +153,12 @@ func (ps *PagesServer) receivePushEvent(event *gh.PushEvent) error {
 		}
 
 		if add {
-			return ps.addTarget(repo, yml)
+			return ps.addTarget(repo, nil)
 		} else if remove {
-			return ps.removeTarget(repo, yml)
+			return ps.removeTarget(repo, nil)
 		}
 	}
+	return nil
 }
 
 func (ps *PagesServer) errorResponse(w http.ResponseWriter, r *http.Request, err error) {
@@ -202,7 +203,8 @@ func main() {
 
 	ps := NewPagesServer(ctx, webhookSecret, github)
 
-	for _, org := range []string{"ipfs", "ipld", "orbitdb", "libp2p", "multiformats"} {
+	// for _, org := range []string{"ipfs", "ipld", "orbitdb", "libp2p", "multiformats"} {
+	for _, org := range []string{"ipld"} {
 		err = ps.RefreshTargets(ctx, org)
 		if err != nil {
 			log.Fatalf("RefreshTargets: %s", err)
